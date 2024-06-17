@@ -1,6 +1,8 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{CosmosMsg, Uint128};
 
+use crate::state::State;
+
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -20,6 +22,8 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(Uint128)]
     GetBalance { token: String },
+    #[returns(State)]
+    LoanInfo {},
 }
 
 #[cw_serde]
@@ -47,3 +51,4 @@ impl From<CustomMsg> for CosmosMsg<CustomMsg> {
         CosmosMsg::Custom(msg)
     }
 }
+
