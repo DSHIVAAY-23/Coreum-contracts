@@ -1,5 +1,5 @@
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{State, NFT, STATE, NFTS, EDITIONS, RENTALS};
+use crate::state::{SaleInfo, State, EDITIONS, NFT, NFTS, RENTALS, SALES, STATE};
 use coreum_wasm_sdk::{assetft, core::{CoreumMsg, CoreumQueries}};
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128, CosmosMsg, BankMsg, Coin, StdError,
@@ -79,7 +79,21 @@ fn list_for_sale(
     id: String,
     price: Uint128,
 ) -> Result<Response<CoreumMsg>, ContractError> {
-    // Implement logic to list NFT for sale
+    // Load the NFT from storage
+    let nft = NFTS.load(deps.storage, id.clone())?;
+    
+    // Ensure the sender is the owner of the NFT
+    if nft.owner != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    // Save the sale information
+    let sale_info = SaleInfo {
+        price,
+        royalty: nft.royalties,
+    };
+    SALES.save(deps.storage, id.clone(), &sale_info)?;
+
     Ok(Response::new()
         .add_attribute("method", "list_for_sale")
         .add_attribute("nft_id", id)
@@ -92,11 +106,62 @@ fn buy_nft(
     info: MessageInfo,
     id: String,
 ) -> Result<Response<CoreumMsg>, ContractError> {
-    // Implement logic to buy NFT
+    // Load the sale information from storage
+    let sale_info = SALES.load(deps.storage, id.clone())
+        .map_err(|_| ContractError::InvalidNFT {})?;
+    
+    // Load the NFT from storage
+    let mut nft = NFTS.load(deps.storage, id.clone())?;
+
+    // Ensure the buyer has sent enough funds
+    let sent_funds = info.funds.iter().find(|c| c.denom == "uscrt").map(|c| c.amount).unwrap_or(Uint128::zero());
+    if sent_funds < sale_info.price {
+        return Err(ContractError::InsufficientBalance {});
+    }
+
+    // Handle the royalty payment if applicable
+    let mut messages: Vec<CosmosMsg<CoreumMsg>> = vec![];
+    let royalty_amount = if let Some(royalty) = sale_info.royalty {
+        let royalty_amount = sale_info.price.multiply_ratio(royalty, 100u128);
+        let royalty_msg = BankMsg::Send {
+            to_address: nft.owner.clone().into(),
+            amount: vec![Coin {
+                denom: "uscrt".to_string(),
+                amount: royalty_amount,
+            }],
+        };
+        messages.push(CosmosMsg::Bank(royalty_msg));
+        royalty_amount
+    } else {
+        Uint128::zero()
+    };
+
+    // Transfer the remaining amount to the seller
+    let seller_payment = sale_info.price.checked_sub(royalty_amount)
+        .map_err(|_| ContractError::Overflow {})?;
+    let seller_msg = BankMsg::Send {
+        to_address: nft.owner.clone().into(),
+        amount: vec![Coin {
+            denom: "uscrt".to_string(),
+            amount: seller_payment,
+        }],
+    };
+    messages.push(CosmosMsg::Bank(seller_msg));
+
+    // Update the NFT owner
+    nft.owner = info.sender.clone();
+    NFTS.save(deps.storage, id.clone(), &nft)?;
+
+    // Remove the sale information
+    SALES.remove(deps.storage, id.clone());
+
     Ok(Response::new()
         .add_attribute("method", "buy_nft")
-        .add_attribute("nft_id", id))
+        .add_attribute("nft_id", id)
+        .add_attribute("buyer", info.sender.to_string())
+        .add_messages(messages))
 }
+
 
 /// Rent an NFT for a specified duration
 fn rent_nft(
@@ -168,7 +233,6 @@ fn update_nft(
         .add_attribute("method", "update_nft")
         .add_attribute("nft_id", id))
 }
-
 /// Withdraw accumulated funds from the contract
 fn withdraw_funds(
     deps: DepsMut<CoreumQueries>,

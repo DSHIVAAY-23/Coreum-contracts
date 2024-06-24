@@ -1,6 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Uint128,Addr};
-use coreum_wasm_sdk::nft::NFT;
+use cosmwasm_std::{Uint128, Addr};
+
+use crate::state::NFT;
 
 #[cw_serde]
 pub struct InstantiateMsg {
