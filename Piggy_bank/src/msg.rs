@@ -11,7 +11,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     DepositTokens { amount: Uint128 },
-    WithdrawTokens { deposit_id: u64 },
+    WithdrawTokens { deposit_id: u64, denom: String }, 
     SetLockTime { lock_time: u64 },
     SetNewOwner { new_owner: String },
 }

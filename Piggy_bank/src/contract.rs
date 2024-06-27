@@ -42,7 +42,7 @@ pub fn execute(
 ) -> Result<Response<CoreumMsg>, ContractError>  {
     match msg {
         ExecuteMsg::DepositTokens { amount } => deposit_tokens(deps, env, info, amount),
-        ExecuteMsg::WithdrawTokens { deposit_id } => Ok(withdraw_tokens(deps, env, info, deposit_id)?),
+        ExecuteMsg::WithdrawTokens { deposit_id, denom } => Ok(withdraw_tokens(deps, env, info, deposit_id, denom)?), // Updated call
         ExecuteMsg::SetLockTime { lock_time } => set_lock_time(deps, info, lock_time),
         ExecuteMsg::SetNewOwner { new_owner } => set_new_owner(deps, info, new_owner),
     }
@@ -76,11 +76,13 @@ fn deposit_tokens(
         .add_attribute("amount", amount.to_string()))
 }
 
+
 fn withdraw_tokens(
     deps: DepsMut<CoreumQueries>,
     env: Env,
     info: MessageInfo,
     deposit_id: u64,
+    denom: String, 
 ) -> Result<Response<CoreumMsg>, ContractError>  {
     let state = STATE.load(deps.storage)?;
     let deposit = DEPOSITS.load(deps.storage, deposit_id)?;
@@ -90,13 +92,13 @@ fn withdraw_tokens(
     }
 
     if deposit.from != info.sender {
-        return Err(ContractError::InvalidOwner {  });
+        return Err(ContractError::InvalidOwner {});
     }
 
     let send_msg = BankMsg::Send {
         to_address: info.sender.to_string(),
         amount: vec![Coin {
-            denom: "token".to_string(),
+            denom, // Use the provided denom
             amount: deposit.amount,
         }],
     };
