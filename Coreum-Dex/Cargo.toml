@@ -1,8 +1,8 @@
 [package]
-name = "flashloan"
+name = "Coreum-Dex"
 version = "0.1.0"
 edition = "2021"
-description = "A CosmWasm contract for flash loans on the Coreum blockchain"
+description = "A CosmWasm contract for Coreum_dex on the Coreum blockchain"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

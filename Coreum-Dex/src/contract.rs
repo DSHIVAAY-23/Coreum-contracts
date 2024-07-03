@@ -11,6 +11,7 @@ use cw2::set_contract_version;
 const CONTRACT_NAME: &str = "dex";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Initializes the contract with the owner, reward token, and reward rate.
 #[entry_point]
 pub fn instantiate(
     deps: DepsMut<CoreumQueries>,
@@ -40,6 +41,7 @@ pub fn instantiate(
         .add_attribute("owner", info.sender.to_string()))
 }
 
+/// Handles the different execution messages for the DEX.
 #[entry_point]
 pub fn execute(
     deps: DepsMut<CoreumQueries>,
@@ -65,6 +67,7 @@ pub fn execute(
     }
 }
 
+/// Adds liquidity to the specified pool.
 fn add_liquidity(
     deps: DepsMut<CoreumQueries>,
     _env: Env,
@@ -118,6 +121,7 @@ fn add_liquidity(
         .add_attribute("amount2", amount2.to_string()))
 }
 
+/// Removes liquidity from the specified pool.
 fn remove_liquidity(
     deps: DepsMut<CoreumQueries>,
     _env: Env,
@@ -160,6 +164,7 @@ fn remove_liquidity(
         .add_attribute("amount2", amount2.to_string()))
 }
 
+/// Swaps tokens in the specified pool.
 fn swap_tokens(
     deps: DepsMut<CoreumQueries>,
     _env: Env,
@@ -216,6 +221,7 @@ fn swap_tokens(
         .add_message(CosmosMsg::Bank(transfer_msg)))
 }
 
+/// Calculates the amount of output tokens for a given input amount using the constant product formula.
 fn calculate_swap(amount_in: Uint128, input_reserve: Uint128, output_reserve: Uint128) -> StdResult<Uint128> {
     // Calculate swap amount using constant product formula with fee
     let amount_in_with_fee = amount_in * Uint128::from(997u128);
@@ -224,6 +230,7 @@ fn calculate_swap(amount_in: Uint128, input_reserve: Uint128, output_reserve: Ui
     Ok(numerator / denominator)
 }
 
+/// Distributes rewards to liquidity providers based on their stake.
 fn distribute_rewards(
     deps: DepsMut<CoreumQueries>,
     env: Env,
@@ -265,6 +272,7 @@ fn distribute_rewards(
         .add_attribute("status", "no_rewards_distributed"))
 }
 
+/// Handles queries to the contract.
 #[entry_point]
 pub fn query(deps: Deps<CoreumQueries>, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
@@ -283,6 +291,7 @@ pub fn query(deps: Deps<CoreumQueries>, _env: Env, msg: QueryMsg) -> StdResult<B
     }
 }
 
+/// Queries the reserves of the specified liquidity pool.
 fn query_pool_reserves(deps: Deps<CoreumQueries>, token1_address: String, token2_address: String) -> StdResult<LiquidityPool> {
     // Validate token addresses and load pool reserves
     let token1 = deps.api.addr_validate(&token1_address)?;
@@ -292,6 +301,7 @@ fn query_pool_reserves(deps: Deps<CoreumQueries>, token1_address: String, token2
     LIQUIDITY_POOLS.load(deps.storage, pool_key)
 }
 
+/// Queries the liquidity of a user in the specified pool.
 fn query_liquidity(deps: Deps<CoreumQueries>, pool: Addr, user: Addr) -> StdResult<Uint128> {
     // Load user's liquidity in the specified pool
     let key = (user, pool);
@@ -299,6 +309,7 @@ fn query_liquidity(deps: Deps<CoreumQueries>, pool: Addr, user: Addr) -> StdResu
     Ok(liquidity)
 }
 
+/// Queries the rewards of a user.
 fn query_rewards(deps: Deps<CoreumQueries>, user: Addr) -> StdResult<Uint128> {
     // Load user's rewards
     let rewards = REWARDS.load(deps.storage, user)?;
