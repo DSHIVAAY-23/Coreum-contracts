@@ -145,7 +145,6 @@ fn distribute_funds(deps: DepsMut<CoreumQueries>, env: Env) -> StdResult<Respons
     let mut response = Response::new().add_attribute("method", "distribute_funds");
     let mut remaining_fund = community_fund;
 
-    // Second loop to distribute funds
     for mut subscription in subscriptions {
         if subscription.expiry > env.block.time.seconds() {
             let share = community_fund * subscription.amount / total_subscriptions;
