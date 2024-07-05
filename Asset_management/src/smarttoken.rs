@@ -8,9 +8,6 @@ use serde::{Deserialize, Serialize};
 use coreum_wasm_sdk::assetft;
 use coreum_wasm_sdk::core::{CoreumMsg, CoreumQueries};
 
-const CONTRACT_NAME: &str = "smart-token";
-const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InstantiateMsg {
     pub owner: String,

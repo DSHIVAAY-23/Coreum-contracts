@@ -2,7 +2,7 @@ use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, AssetType as MsgAssetType};
 use crate::state::{TokenizedAsset, ASSETS, FRACTIONAL_BALANCES, NEXT_TOKEN_ID, AssetType as StateAssetType};
 use cosmwasm_std::{
-    entry_point, to_binary, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Order, Response, StdError, StdResult, Uint128, WasmMsg
+    entry_point, to_binary, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Order, Response, StdError, StdResult, Uint128,
 };
 use cw2::set_contract_version;
 use crate::smarttoken::{BALANCES, TOKEN_INFO};
