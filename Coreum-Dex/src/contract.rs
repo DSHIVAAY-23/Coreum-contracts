@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{LiquidityPool, OWNER, LIQUIDITY_POOLS, STATE, LIQUIDITY_PROVIDERS, REWARDS, State};
+use crate::state::{LiquidityPool, PoolType, OWNER, LIQUIDITY_POOLS, STATE, LIQUIDITY_PROVIDERS, REWARDS, State};
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128, BankMsg,
 };
@@ -51,8 +51,8 @@ pub fn execute(
 ) -> Result<Response<CoreumMsg>, ContractError> {
     match msg {
         // Handle adding liquidity to a pool
-        ExecuteMsg::AddLiquidity { token1_address, token2_address, amount1, amount2 } => {
-            add_liquidity(deps, env, info, token1_address, token2_address, amount1, amount2)
+        ExecuteMsg::AddLiquidity { token1_address, token2_address, amount1, amount2, pool_type } => {
+            add_liquidity(deps, env, info, token1_address, token2_address, amount1, amount2, pool_type)
         },
         // Handle removing liquidity from a pool
         ExecuteMsg::RemoveLiquidity { token1_address, token2_address, amount1, amount2 } => {
@@ -67,6 +67,8 @@ pub fn execute(
     }
 }
 
+
+
 /// Adds liquidity to the specified pool.
 fn add_liquidity(
     deps: DepsMut<CoreumQueries>,
@@ -76,6 +78,7 @@ fn add_liquidity(
     token2_address: String,
     amount1: Uint128,
     amount2: Uint128,
+    pool_type: PoolType,
 ) -> Result<Response<CoreumMsg>, ContractError> {
     // Validate token addresses
     let token1 = deps.api.addr_validate(&token1_address)?;
@@ -89,6 +92,7 @@ fn add_liquidity(
         token1_reserve: Uint128::zero(),
         token2_reserve: Uint128::zero(),
         total_liquidity: Uint128::zero(),
+        pool_type:pool_type.clone(),
     });
 
     // Update pool reserves and total liquidity
@@ -118,8 +122,10 @@ fn add_liquidity(
         .add_attribute("token1", token1_address)
         .add_attribute("token2", token2_address)
         .add_attribute("amount1", amount1.to_string())
-        .add_attribute("amount2", amount2.to_string()))
+        .add_attribute("amount2", amount2.to_string())
+        .add_attribute("pool_type", format!("{:?}", pool_type)))
 }
+
 
 /// Removes liquidity from the specified pool.
 fn remove_liquidity(
@@ -139,7 +145,7 @@ fn remove_liquidity(
     // Load the liquidity pool
     let mut pool = LIQUIDITY_POOLS.load(deps.storage, pool_key.clone())?;
 
-    // Ensure pool has sufficient reserves
+    // Check if the pool has enough reserves to remove liquidity
     if pool.token1_reserve < amount1 || pool.token2_reserve < amount2 {
         return Err(ContractError::InsufficientFunds {});
     }
@@ -153,7 +159,10 @@ fn remove_liquidity(
 
     // Update user's liquidity
     let user_key = (info.sender.clone(), token1.clone());
-    let user_liquidity = LIQUIDITY_PROVIDERS.may_load(deps.storage, user_key.clone())?.unwrap_or(Uint128::zero());
+    let user_liquidity = LIQUIDITY_PROVIDERS.load(deps.storage, user_key.clone())?;
+    if user_liquidity < amount1 + amount2 {
+        return Err(ContractError::InsufficientFunds {});
+    }
     LIQUIDITY_PROVIDERS.save(deps.storage, user_key, &(user_liquidity - amount1 - amount2))?;
 
     Ok(Response::new()
@@ -163,7 +172,6 @@ fn remove_liquidity(
         .add_attribute("amount1", amount1.to_string())
         .add_attribute("amount2", amount2.to_string()))
 }
-
 /// Swaps tokens in the specified pool.
 fn swap_tokens(
     deps: DepsMut<CoreumQueries>,
@@ -176,26 +184,19 @@ fn swap_tokens(
     // Validate token addresses
     let token_in_addr = deps.api.addr_validate(&token_in)?;
     let token_out_addr = deps.api.addr_validate(&token_out)?;
-    let pool_key = if LIQUIDITY_POOLS.has(deps.storage, (token_in_addr.clone(), token_out_addr.clone())) {
-        (token_in_addr.clone(), token_out_addr.clone())
-    } else {
-        (token_out_addr.clone(), token_in_addr.clone())
-    };
+    let pool_key = (token_in_addr.clone(), token_out_addr.clone());
 
     // Load the liquidity pool
     let mut pool = LIQUIDITY_POOLS.load(deps.storage, pool_key.clone())?;
 
-    // Determine input and output reserves based on the tokens
-    let (input_reserve, output_reserve) = if pool.token1_address == token_in_addr {
-        (pool.token1_reserve, pool.token2_reserve)
-    } else {
-        (pool.token2_reserve, pool.token1_reserve)
+    // Implement the swap logic based on pool type
+    let amount_out = match pool.pool_type {
+        PoolType::XYK => calculate_xyk_swap(&pool, amount_in)?,
+        PoolType::Stable => calculate_stable_swap(&pool, amount_in)?,
+        PoolType::MetaStable => calculate_metastable_swap(&pool, amount_in)?,
     };
 
-    // Calculate the output amount using the swap formula
-    let amount_out = calculate_swap(amount_in, input_reserve, output_reserve)?;
-
-    // Update pool reserves based on the swap
+    // Update pool reserves
     if pool.token1_address == token_in_addr {
         pool.token1_reserve += amount_in;
         pool.token2_reserve -= amount_out;
@@ -206,28 +207,44 @@ fn swap_tokens(
 
     LIQUIDITY_POOLS.save(deps.storage, pool_key, &pool)?;
 
-    // Create a transfer message to send the swapped tokens to the user
-    let transfer_msg = BankMsg::Send {
-        to_address: info.sender.to_string(),
-        amount: vec![Coin { denom: token_out.to_string(), amount: amount_out }],
-    };
+    // Update user's balance
+    let token_out_user_key = (info.sender.clone(), token_out_addr.clone());
+    let token_out_user_balance = LIQUIDITY_PROVIDERS.may_load(deps.storage, token_out_user_key.clone())?.unwrap_or(Uint128::zero());
+    LIQUIDITY_PROVIDERS.save(deps.storage, token_out_user_key, &(token_out_user_balance + amount_out))?;
 
     Ok(Response::new()
         .add_attribute("method", "swap_tokens")
         .add_attribute("token_in", token_in)
         .add_attribute("token_out", token_out)
         .add_attribute("amount_in", amount_in.to_string())
-        .add_attribute("amount_out", amount_out.to_string())
-        .add_message(CosmosMsg::Bank(transfer_msg)))
+        .add_attribute("amount_out", amount_out.to_string()))
+}
+/// Calculates the output amount for XYK swap.
+fn calculate_xyk_swap(pool: &LiquidityPool, amount_in: Uint128) -> Result<Uint128, ContractError> {
+    let token_in_reserve = pool.token1_reserve;
+    let token_out_reserve = pool.token2_reserve;
+    let amount_out = amount_in * token_out_reserve / (token_in_reserve + amount_in);
+    Ok(amount_out)
 }
 
-/// Calculates the amount of output tokens for a given input amount using the constant product formula.
-fn calculate_swap(amount_in: Uint128, input_reserve: Uint128, output_reserve: Uint128) -> StdResult<Uint128> {
-    // Calculate swap amount using constant product formula with fee
-    let amount_in_with_fee = amount_in * Uint128::from(997u128);
-    let numerator = amount_in_with_fee * output_reserve;
-    let denominator = input_reserve * Uint128::from(1000u128) + amount_in_with_fee;
-    Ok(numerator / denominator)
+/// Calculates the output amount for Stable swap using a simplified formula.
+fn calculate_stable_swap(pool: &LiquidityPool, amount_in: Uint128) -> Result<Uint128, ContractError> {
+    let token_in_reserve = pool.token1_reserve;
+    let token_out_reserve = pool.token2_reserve;
+
+    // Simplified stable swap formula
+    let amount_out = (amount_in * token_out_reserve) / (token_in_reserve + amount_in);
+    Ok(amount_out)
+}
+
+/// Calculates the output amount for Meta-stable swap using a simplified formula.
+fn calculate_metastable_swap(pool: &LiquidityPool, amount_in: Uint128) -> Result<Uint128, ContractError> {
+    let token_in_reserve = pool.token1_reserve;
+    let token_out_reserve = pool.token2_reserve;
+
+    // Simplified meta-stable swap formula
+    let amount_out = (amount_in * token_out_reserve) / (token_in_reserve + amount_in);
+    Ok(amount_out)
 }
 
 /// Distributes rewards to liquidity providers based on their stake.
@@ -271,6 +288,7 @@ fn distribute_rewards(
         .add_attribute("method", "distribute_rewards")
         .add_attribute("status", "no_rewards_distributed"))
 }
+
 
 /// Handles queries to the contract.
 #[entry_point]

@@ -1,5 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Uint128};
+use crate::state::PoolType;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -15,6 +16,7 @@ pub enum ExecuteMsg {
         token2_address: String,
         amount1: Uint128,
         amount2: Uint128,
+        pool_type: PoolType,
     },
     RemoveLiquidity {
         token1_address: String,

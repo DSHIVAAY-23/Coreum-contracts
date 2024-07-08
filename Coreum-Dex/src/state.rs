@@ -4,12 +4,20 @@ use serde::{Deserialize, Serialize};
 use cw_storage_plus::{Item, Map};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub enum PoolType {
+    XYK,
+    Stable,
+    MetaStable,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct LiquidityPool {
     pub token1_address: Addr,
     pub token2_address: Addr,
     pub token1_reserve: Uint128,
     pub token2_reserve: Uint128,
     pub total_liquidity: Uint128,
+    pub pool_type: PoolType,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
