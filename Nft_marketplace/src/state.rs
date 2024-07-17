@@ -5,7 +5,6 @@ use cw_storage_plus::{Item, Map};
 #[cw_serde]
 pub struct State {
     pub owner: Addr,
-    pub marketplace: Addr,
 }
 
 pub const STATE: Item<State> = Item::new("state");
