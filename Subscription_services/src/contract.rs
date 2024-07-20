@@ -12,11 +12,11 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = State {
         owner: deps.api.addr_validate(&msg.owner)?,
         subscription_cost: msg.subscription_cost,
@@ -32,11 +32,11 @@ pub fn instantiate(
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Subscribe {} => subscribe(deps, env, info),
         ExecuteMsg::Renew {} => renew(deps, env, info),
@@ -45,10 +45,10 @@ pub fn execute(
 }
 
 fn subscribe(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
 
     // Check if the user has sent enough funds
@@ -73,10 +73,10 @@ fn subscribe(
 }
 
 fn renew(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
 
     // Check if the user has sent enough funds
@@ -101,9 +101,9 @@ fn renew(
 }
 
 fn withdraw_funds(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
     if info.sender != state.owner {
         return Err(ContractError::Unauthorized {});
