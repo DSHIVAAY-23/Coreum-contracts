@@ -15,11 +15,11 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The instantiate function initializes the contract with the given parameters.
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Set the contract version in the storage
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
@@ -46,21 +46,23 @@ pub fn instantiate(
     STATE.save(deps.storage, &state)?;
 
     // Return a response with the necessary attributes and the issue message
+
     Ok(Response::new()
         .add_attribute("method", "instantiate")
         .add_attribute("owner", state.owner.to_string())
-        .add_attribute("denom", state.denom)
-        .add_message(issue_msg))
+        .add_attribute("denom", state.denom))
+    
+    
 }
 
 /// The execute function handles different execute messages and performs the corresponding actions.
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::UpdateReputation { user, reputation } => {
             update_reputation(deps, info, user, reputation)
@@ -72,11 +74,11 @@ pub fn execute(
 
 /// The update_reputation function allows the contract owner to update a user's reputation.
 fn update_reputation(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     user: String,
     reputation: u64,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Load the current state from the storage
     let state = STATE.load(deps.storage)?;
     // Check if the sender is the owner of the contract
@@ -103,10 +105,10 @@ fn update_reputation(
 
 /// The reset_reputation function allows the contract owner to reset a user's reputation.
 fn reset_reputation(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     user: String,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Load the current state from the storage
     let state = STATE.load(deps.storage)?;
     // Check if the sender is the owner of the contract
@@ -127,11 +129,11 @@ fn reset_reputation(
 
 /// The transfer function allows a user to transfer a specified amount of tokens to another user.
 pub fn transfer(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     recipient: String,
     amount: Uint128,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
     // Validate the recipient address
     let recipient_addr = deps.api.addr_validate(&recipient)?;
     let sender_addr = info.sender.clone();
