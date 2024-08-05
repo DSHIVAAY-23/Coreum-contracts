@@ -12,11 +12,11 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<CoreumMsg>, ContractError>  {
+) -> Result<Response, ContractError>  {
     let state = State {
         owner: deps.api.addr_validate(&msg.owner)?,
         lock_time: 120, // default to 2 minutes
@@ -35,11 +35,11 @@ pub fn instantiate(
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<CoreumMsg>, ContractError>  {
+) -> Result<Response, ContractError>  {
     match msg {
         ExecuteMsg::DepositTokens { amount } => deposit_tokens(deps, env, info, amount),
         ExecuteMsg::WithdrawTokens { deposit_id, denom } => Ok(withdraw_tokens(deps, env, info, deposit_id, denom)?), // Updated call
@@ -49,11 +49,11 @@ pub fn execute(
 }
 
 fn deposit_tokens(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     amount: Uint128,
-) -> Result<Response<CoreumMsg>, ContractError>   {
+) -> Result<Response, ContractError>   {
     let mut state = STATE.load(deps.storage)?;
     let deposit_id = state.deposit_count;
 
@@ -78,12 +78,12 @@ fn deposit_tokens(
 
 
 fn withdraw_tokens(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     deposit_id: u64,
     denom: String, 
-) -> Result<Response<CoreumMsg>, ContractError>  {
+) -> Result<Response, ContractError>  {
     let state = STATE.load(deps.storage)?;
     let deposit = DEPOSITS.load(deps.storage, deposit_id)?;
 
@@ -115,10 +115,10 @@ fn withdraw_tokens(
 }
 
 fn set_lock_time(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     lock_time: u64,
-) ->Result<Response<CoreumMsg>, ContractError>  {
+) ->Result<Response, ContractError>  {
     let mut state = STATE.load(deps.storage)?;
 
     if info.sender != state.owner {
@@ -134,10 +134,10 @@ fn set_lock_time(
 }
 
 fn set_new_owner(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     new_owner: String,
-) -> Result<Response<CoreumMsg>, ContractError>  {
+) -> Result<Response, ContractError>  {
     let mut state = STATE.load(deps.storage)?;
 
     if info.sender != state.owner {

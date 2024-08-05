@@ -13,11 +13,11 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Initialize the contract with owner address
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Save the contract state
     let state = State {
         owner: deps.api.addr_validate(&msg.owner)?,
@@ -34,11 +34,11 @@ pub fn instantiate(
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreateNFT { id, metadata, royalties } => create_nft(deps, info, id, metadata, royalties),
         ExecuteMsg::ListForSale { id, price } => list_for_sale(deps, info, id, price),
@@ -54,12 +54,12 @@ pub fn execute(
 }
     /// Create a new NFT with specified metadata and optional royalties
     fn create_nft(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
         metadata: String,
         royalties: Option<u64>,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let nft = NFT {
             id: id.clone(),
             owner: info.sender.clone(),
@@ -74,11 +74,11 @@ pub fn execute(
     
     /// List an NFT for sale with a specified price
     fn list_for_sale(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
         price: Uint128,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         // Load the NFT from storage
         let nft = NFTS.load(deps.storage, id.clone())?;
         
@@ -102,10 +102,10 @@ pub fn execute(
     
     /// Buy an NFT that is listed for sale
     fn buy_nft(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         // Load the sale information from storage
         let sale_info = SALES.load(deps.storage, id.clone())
             .map_err(|_| ContractError::InvalidOwner  {})?;
@@ -165,11 +165,11 @@ pub fn execute(
     
     /// Rent an NFT for a specified duration
     fn rent_nft(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
         duration: u64,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let nft = NFTS.load(deps.storage, id.clone())?;
         if nft.owner != info.sender {
             return Err(ContractError::Unauthorized {});
@@ -184,10 +184,10 @@ pub fn execute(
     
     /// Return a rented NFT
     fn return_nft(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let rental_info = RENTALS.load(deps.storage, id.clone())?;
         if rental_info.0 != info.sender {
             return Err(ContractError::Unauthorized {});
@@ -200,11 +200,11 @@ pub fn execute(
     
     /// Mint a limited edition of an existing NFT
     fn mint_edition(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
         edition: u32,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let nft = NFTS.load(deps.storage, id.clone())?;
         if nft.owner != info.sender {
             return Err(ContractError::Unauthorized {});
@@ -216,10 +216,10 @@ pub fn execute(
             .add_attribute("edition", edition.to_string()))
     }
     fn unlist_nft(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         // Load the NFT from storage
         let nft = NFTS.load(deps.storage, id.clone())?;
         
@@ -238,11 +238,11 @@ pub fn execute(
     
     /// Update the metadata of an existing NFT
     fn update_nft(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
         new_metadata: String,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let mut nft = NFTS.load(deps.storage, id.clone())?;
         if nft.owner != info.sender {
             return Err(ContractError::Unauthorized {});
@@ -255,9 +255,9 @@ pub fn execute(
     }
     /// Withdraw accumulated funds from the contract
     fn withdraw_funds(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         let state = STATE.load(deps.storage)?;
         if info.sender != state.owner {
             return Err(ContractError::Unauthorized {});
@@ -275,11 +275,11 @@ pub fn execute(
             .add_message(CosmosMsg::Bank(withdraw_msg)))
     }
     fn transfer_nft(
-        deps: DepsMut<CoreumQueries>,
+        deps: DepsMut,
         info: MessageInfo,
         id: String,
         new_owner: String,
-    ) -> Result<Response<CoreumMsg>, ContractError> {
+    ) -> Result<Response, ContractError> {
         // Load the NFT from storage
         let mut nft = NFTS.load(deps.storage, id.clone())?;
         

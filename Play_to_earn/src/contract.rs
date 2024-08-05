@@ -13,11 +13,11 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = State {
         owner: deps.api.addr_validate(&msg.owner)?,
         token_address: deps.api.addr_validate(&msg.token_address)?,
@@ -36,11 +36,11 @@ pub fn instantiate(
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::RewardPlayer { player, amount } => reward_player(deps, env, info, player, amount),
         ExecuteMsg::CollectFee { amount } => collect_fee(deps, info, amount),
@@ -54,12 +54,12 @@ pub fn execute(
 }
 
 fn reward_player(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     player: String,
     amount: Uint128,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
     let player_addr = deps.api.addr_validate(&player)?;
 
@@ -84,10 +84,10 @@ fn reward_player(
 }
 
 fn collect_fee(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     amount: Uint128,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
 
     let collect_msg = BankMsg::Send {
@@ -102,11 +102,11 @@ fn collect_fee(
 
 
 fn breed_nft(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     parent1: String,
     parent2: String,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
     let breed_msg = WasmMsg::Execute {
         contract_addr: state.breeding_contract.to_string(),
@@ -124,11 +124,11 @@ fn breed_nft(
         .add_message(CosmosMsg::Wasm(breed_msg)))
 }
 fn battle_outcome(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     player: String,
     result: String,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let player_addr = deps.api.addr_validate(&player)?;
     let mut player = PLAYERS.may_load(deps.storage, &player_addr)?.unwrap_or(Player {
         address: player_addr.clone(),
@@ -159,12 +159,12 @@ fn battle_outcome(
 
 
 fn manage_guild(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     guild: String,
     player: String,
     action: String,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let guild_addr = deps.api.addr_validate(&guild)?;
     let player_addr = deps.api.addr_validate(&player)?;
     
@@ -190,10 +190,10 @@ fn manage_guild(
 }
 
 fn charge_transaction_fee(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     amount: Uint128,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
 
     let fee_msg = BankMsg::Send {
@@ -230,10 +230,10 @@ fn sell_asset(
 }
 
 fn withdraw_treasury(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     amount: Uint128,
-) -> Result<Response<CoreumMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
     if info.sender != state.owner {
         return Err(ContractError::Unauthorized {});
