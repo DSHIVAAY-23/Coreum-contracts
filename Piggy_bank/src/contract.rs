@@ -54,6 +54,12 @@ fn deposit_tokens(
     info: MessageInfo,
     amount: Uint128,
 ) -> Result<Response, ContractError>   {
+     // Ensure that the correct amount of tokens is being sent
+     let sent_funds = info
+    .funds
+    .iter()
+    .find(|coin| coin.amount == amount)
+    .ok_or(ContractError::InsufficientFunds)?;
     let mut state = STATE.load(deps.storage)?;
     let deposit_id = state.deposit_count;
 
@@ -94,6 +100,10 @@ fn withdraw_tokens(
     if deposit.from != info.sender {
         return Err(ContractError::InvalidOwner {});
     }
+    // Ensure the withdrawal is going to the correct recipient
+    if deposit.from != deps.api.addr_validate(&info.sender.to_string())? {
+        return Err(ContractError::UnauthorizedWithdrawal {});
+    }
 
     let send_msg = BankMsg::Send {
         to_address: info.sender.to_string(),
@@ -125,6 +135,11 @@ fn set_lock_time(
         return Err(ContractError::Unauthorized {});
     }
 
+    // Validate the lock time (e.g., it must be greater than 0 and within a certain range)
+    if lock_time < 60 || lock_time > 31536000 { // 1 minute to 1 year in seconds
+        return Err(ContractError::InvalidLockTime {});
+    }
+
     state.lock_time = lock_time;
     STATE.save(deps.storage, &state)?;
 
@@ -143,6 +158,9 @@ fn set_new_owner(
     if info.sender != state.owner {
         return Err(ContractError::Unauthorized {});
     }
+
+    // Validate new owner address
+    let validated_owner = deps.api.addr_validate(&new_owner)?;
 
     state.owner = deps.api.addr_validate(&new_owner)?;
     STATE.save(deps.storage, &state)?;

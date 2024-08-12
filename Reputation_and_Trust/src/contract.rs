@@ -55,9 +55,14 @@ pub fn instantiate(
         burn_rate: Some("0".into()),
         send_commission_rate: Some("0.1".into()), // 10% commission for sending
     });
+// Define the token denom using the contract address
+let denom = format!("{}-{}", msg.subunit, env.contract.address).to_lowercase();
 
-    // Define the token denom using the contract address
-    let denom = format!("{}-{}", msg.subunit, env.contract.address).to_lowercase();
+// Validate the generated denom (e.g., non-empty, valid format, etc.)
+if denom.is_empty() || !denom.contains(&env.contract.address.to_string()) {
+    return Err(ContractError::InvalidDenom {});
+}
+
     let state = State {
         owner: info.sender.clone(),
         denom,

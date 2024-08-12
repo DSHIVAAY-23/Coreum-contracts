@@ -25,6 +25,13 @@ pub enum ContractError {
     #[error("Invalid Commission Rate")]
     InvalidCommissionRate {},
 
+    #[error("State Not Initialized")]
+    StateNotInitialized {},
+    
+    #[error("Invalid Denom")]
+    InvalidDenom {},
+
+
     #[error("Invalid Feature Flag")]
     InvalidFeatureFlag { },
     // other variants...

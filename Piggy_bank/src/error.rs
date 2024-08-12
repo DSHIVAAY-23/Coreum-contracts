@@ -15,6 +15,18 @@ pub enum ContractError {
     #[error("You are not the depositor!")]
     InvalidOwner {},
 
+    #[error("InvalidLockTime ")]
+    InvalidLockTime  {},
+
+    #[error("UnauthorizedWithdrawal ")]
+    UnauthorizedWithdrawal  {},
+
+
+    #[error("InsufficientFunds ")]
+    InsufficientFunds {},
+    
+    
+
     #[error("Custom Error val: {val:?}")]
     CustomError { val: String },
 }
