@@ -18,6 +18,13 @@ pub enum ContractError {
 
     Overflow {},
 
+
+    #[error("Invalid Reputation Value")]
+    InvalidReputationValue {},
+
+    #[error("Invalid Commission Rate")]
+    InvalidCommissionRate {},
+
     #[error("Invalid Feature Flag")]
     InvalidFeatureFlag { },
     // other variants...

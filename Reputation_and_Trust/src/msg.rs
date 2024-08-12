@@ -16,6 +16,10 @@ pub struct InstantiateMsg {
     /// The initial amount of the token to be issued.
     pub initial_amount: Uint128,
 
+    pub burn_rate: String, // Commission rate for burning
+    pub send_commission_rate: String, // Commission rate for sending
+
+
     // pub features: Some(vec![0]), // 0 - minting
 
 }

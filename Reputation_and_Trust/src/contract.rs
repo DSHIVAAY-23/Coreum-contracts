@@ -29,6 +29,12 @@ pub fn instantiate(
         return Err(ContractError::InvalidInitialAmount {});
     }
 
+    // Validate commission rates
+    let burn_rate: f64 = msg.burn_rate.parse().unwrap();
+    let send_commission_rate: f64 = msg.send_commission_rate.parse().unwrap();
+    if burn_rate < 0.0 || burn_rate > 1.0 || send_commission_rate < 0.0 || send_commission_rate > 1.0 {
+        return Err(ContractError::InvalidCommissionRate {});
+    }
     // // Validate feature flags
     // for &flag in &msg.features {
     //     match flag {
@@ -108,6 +114,10 @@ fn update_reputation(
     // Load the user's current reputation or initialize if not present
     let mut user_reputation =
         REPUTATIONS.may_load(deps.storage, &user_addr)?.unwrap_or(UserReputation { reputation: 0 });
+  // Validate reputation value
+  if reputation > 1_000_000 {
+    return Err(ContractError::InvalidReputationValue {});
+}
 
     // Update the user's reputation
     user_reputation.reputation = reputation;
