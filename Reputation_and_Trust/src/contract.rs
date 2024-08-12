@@ -2,6 +2,7 @@ use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{State, UserReputation, BALANCES, REPUTATIONS, STATE};
 use coreum_wasm_sdk::assetft;
+use crate::msg::FeatureFlag;
 use coreum_wasm_sdk::core::{CoreumMsg, CoreumQueries};
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo,
@@ -22,6 +23,20 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     // Set the contract version in the storage
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    // Validate the initial amount
+    if msg.initial_amount.is_zero() {
+        return Err(ContractError::InvalidInitialAmount {});
+    }
+
+    // // Validate feature flags
+    // for &flag in &msg.features {
+    //     match flag {
+    //         FeatureFlag::Minting  => {}, // Valid flag
+    //         // Add validation for other flags
+    //         _ => return Err(ContractError::InvalidFeatureFlag { flag }),
+    //     }
+    // }
 
     // Prepare a message to issue a new fungible token (FT) using Coreum SDK
     let issue_msg = CoreumMsg::AssetFT(assetft::Msg::Issue {
@@ -69,6 +84,8 @@ pub fn execute(
         }
         ExecuteMsg::ResetReputation { user } => reset_reputation(deps, info, user),
         ExecuteMsg::Transfer { recipient, amount } => transfer(deps, info, recipient, amount),
+        ExecuteMsg::UpdateOwner { new_owner } => update_owner(deps, info, new_owner),
+
     }
 }
 
@@ -133,32 +150,56 @@ pub fn transfer(
     info: MessageInfo,
     recipient: String,
     amount: Uint128,
-    ) -> Result<Response, ContractError> {
+) -> Result<Response, ContractError> {
     // Validate the recipient address
     let recipient_addr = deps.api.addr_validate(&recipient)?;
     let sender_addr = info.sender.clone();
 
-     // Load the sender's balance or initialize if not present
-    let mut sender_balance =
-        BALANCES.may_load(deps.storage, &sender_addr)?.unwrap_or(Uint128::zero());
+    // Load the sender's balance or initialize if not present
+    let sender_balance = BALANCES.may_load(deps.storage, &sender_addr)?.unwrap_or(Uint128::zero());
     if sender_balance < amount {
         return Err(ContractError::InsufficientBalance {});
     }
-    
-    sender_balance = sender_balance.checked_sub(amount).map_err(|_| ContractError::Overflow {})?;
-    BALANCES.save(deps.storage, &sender_addr, &sender_balance)?;
-    
-    let mut recipient_balance =  BALANCES.may_load(deps.storage, &recipient_addr)?.unwrap_or(Uint128::zero());
-    recipient_balance = recipient_balance.checked_add(amount).map_err(|_| ContractError::Overflow {})?;
-    BALANCES.save(deps.storage, &recipient_addr, &recipient_balance)?;
-     // Return a response with the method, from, to, and amount attributes
 
+    // Load the recipient's balance or initialize if not present
+    let recipient_balance = BALANCES.may_load(deps.storage, &recipient_addr)?.unwrap_or(Uint128::zero());
+
+    // Check for overflow before making any changes
+    let new_sender_balance = sender_balance.checked_sub(amount).map_err(|_| ContractError::Overflow {})?;
+    let new_recipient_balance = recipient_balance.checked_add(amount).map_err(|_| ContractError::Overflow {})?;
+
+    // Update the balances in the storage only after validation
+    BALANCES.save(deps.storage, &sender_addr, &new_sender_balance)?;
+    BALANCES.save(deps.storage, &recipient_addr, &new_recipient_balance)?;
+
+    // Return a response with the method, from, to, and amount attributes
     Ok(Response::new()
         .add_attribute("method", "transfer")
         .add_attribute("from", sender_addr.to_string())
         .add_attribute("to", recipient)
         .add_attribute("amount", amount.to_string()))
+}
+fn update_owner(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_owner: String,
+) -> Result<Response, ContractError> {
+    let mut state = STATE.load(deps.storage)?;
+
+    if info.sender != state.owner {
+        return Err(ContractError::Unauthorized {});
     }
+
+    let new_owner_addr = deps.api.addr_validate(&new_owner)?;
+    state.owner = new_owner_addr;
+
+    STATE.save(deps.storage, &state)?;
+
+    Ok(Response::new()
+        .add_attribute("method", "update_owner")
+        .add_attribute("new_owner", new_owner))
+}
+
 
 /// The query function handles different query messages and returns the corresponding data.
 #[entry_point]

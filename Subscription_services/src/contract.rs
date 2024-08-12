@@ -3,7 +3,7 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{Subscription, State, STATE, SUBSCRIPTIONS};
 use coreum_wasm_sdk::core::{CoreumMsg, CoreumQueries};
 use cosmwasm_std::{
-    entry_point, to_binary,  Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128, Coin, BankMsg, CosmosMsg,
+    entry_point, to_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Uint128
 };
 use cw2::set_contract_version;
 
@@ -51,14 +51,24 @@ fn subscribe(
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
 
-    // Check if the user has sent enough funds
+     // Check if the user has sent enough funds
     let sent_funds = info.funds.iter().find(|c| c.denom == "utoken").unwrap_or(&Coin { denom: "utoken".to_string(), amount: Uint128::zero() }).amount;
-    if sent_funds < state.subscription_cost {
-        return Err(ContractError::InsufficientFunds {});
-    }
+    check_funds(sent_funds, state.subscription_cost)?;
+     if sent_funds < state.subscription_cost {
+         return Err(ContractError::InsufficientFunds {});
+     }
 
-    let end_time = env.block.time.plus_seconds(state.subscription_period);
-
+     let end_time = match SUBSCRIPTIONS.may_load(deps.storage, info.sender.clone())? {
+        Some(existing_sub) => {
+            // If existing subscription, extend from the current end_time
+            if env.block.time > existing_sub.end_time {
+                env.block.time.plus_seconds(state.subscription_period)
+            } else {
+                existing_sub.end_time.plus_seconds(state.subscription_period)
+            }
+        }
+        None => env.block.time.plus_seconds(state.subscription_period),
+    };
     let subscription = Subscription {
         user: info.sender.clone(),
         end_time,
@@ -91,7 +101,6 @@ fn renew(
     } else {
         subscription.end_time = subscription.end_time.plus_seconds(state.subscription_period);
     }
-
     SUBSCRIPTIONS.save(deps.storage, info.sender.clone(), &subscription)?;
 
     Ok(Response::new()
@@ -108,7 +117,6 @@ fn withdraw_funds(
     if info.sender != state.owner {
         return Err(ContractError::Unauthorized {});
     }
-
     let balance = deps.querier.query_all_balances(&state.owner)?;
     let withdraw_msg = BankMsg::Send {
         to_address: state.owner.to_string(),
@@ -136,7 +144,8 @@ fn query_is_subscribed(
     env: Env,
     address: String,
 ) -> StdResult<bool> {
-    let addr = deps.api.addr_validate(&address)?;
+    // Validate address format
+    let addr = deps.api.addr_validate(&address).map_err(|_| StdError::generic_err("Invalid address format"))?;
     let subscription = SUBSCRIPTIONS.may_load(deps.storage, addr)?;
     if let Some(sub) = subscription {
         if env.block.time < sub.end_time {
@@ -144,4 +153,12 @@ fn query_is_subscribed(
         }
     }
     Ok(false)
+}
+fn check_funds(sent_funds: Uint128, required_amount: Uint128) -> Result<(), ContractError> {
+    const TOLERANCE: u128 = 1; // Define tolerance level
+
+    if sent_funds < required_amount || sent_funds.u128().checked_sub(required_amount.u128()).unwrap_or_default() > TOLERANCE {
+        return Err(ContractError::InsufficientFunds {});
+    }
+    Ok(())
 }

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
     /// The symbol of the token to be issued.
+    
     pub symbol: String,
     /// The subunit name of the token.
     pub subunit: String,
@@ -14,6 +15,9 @@ pub struct InstantiateMsg {
     pub precision: u32,
     /// The initial amount of the token to be issued.
     pub initial_amount: Uint128,
+
+    // pub features: Some(vec![0]), // 0 - minting
+
 }
 
 /// The `ExecuteMsg` enum defines the different execute messages that can be sent to the contract.
@@ -39,6 +43,8 @@ pub enum ExecuteMsg {
         /// The amount of tokens to be transferred.
         amount: Uint128 
     },
+    UpdateOwner { new_owner: String },
+
 }
 
 /// The `QueryMsg` enum defines the different query messages that can be sent to the contract.
@@ -57,4 +63,10 @@ pub enum QueryMsg {
         /// The address of the user whose balance is to be queried.
         user: String 
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum FeatureFlag {
+    Minting = 0,
+    // Add other feature flags as needed
 }

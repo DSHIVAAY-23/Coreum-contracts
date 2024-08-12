@@ -1,0 +1,5 @@
+/data/Coreum-contracts/Play_to_earn/target/debug/deps/libforward_ref-bc136ea271efad08.rmeta: /home/user/.cargo/registry/src/index.crates.io-6f17d22bba15001f/forward_ref-1.0.0/src/lib.rs
+
+/data/Coreum-contracts/Play_to_earn/target/debug/deps/forward_ref-bc136ea271efad08.d: /home/user/.cargo/registry/src/index.crates.io-6f17d22bba15001f/forward_ref-1.0.0/src/lib.rs
+
+/home/user/.cargo/registry/src/index.crates.io-6f17d22bba15001f/forward_ref-1.0.0/src/lib.rs:

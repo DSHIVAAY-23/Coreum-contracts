@@ -9,11 +9,16 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("InvalidInitialAmount")]
+    InvalidInitialAmount {},
     #[error("Insufficient balance")]
     InsufficientBalance {},
 
     #[error("Overflow error")]
+
     Overflow {},
 
+    #[error("Invalid Feature Flag")]
+    InvalidFeatureFlag { },
     // other variants...
 }
