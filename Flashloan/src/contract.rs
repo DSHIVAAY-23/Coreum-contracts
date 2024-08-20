@@ -65,7 +65,7 @@ pub fn request_flash_loan(
     // Load the contract state
     let state = STATE.load(deps.storage)?;
 
-    // Transfer collateral to the contract
+    // Transfer collateral to the lending pool
     let collateral_transfer = BankMsg::Send {
         to_address: state.lending_pool.clone().into(),
         amount: vec![Coin { denom: token.clone(), amount: collateral }],
@@ -94,34 +94,41 @@ pub fn execute_operation(
     premium: Uint128,
 ) -> Result<Response<CustomMsg>, ContractError> {
     // Load the contract state
-    let _state = STATE.load(deps.storage)?;
+    let state = STATE.load(deps.storage)?;
 
     // Calculate the total repayment amount
     let repay_amount = amount + premium;
 
-    // Create a custom repay flash loan message
-    let repay_msg = CustomMsg::RepayFlashLoan(RepayFlashLoan {
-        sender: info.sender.to_string(),
-        token: token.clone(),
-        amount: repay_amount,
-    });
-
-    // Query the sender's balance to ensure sufficient funds
+    // Query the sender's balance to ensure sufficient funds for repayment
     let balance = deps.querier.query_balance(&info.sender, &token)?;
     if balance.amount < repay_amount {
-        return Err(ContractError::Std(StdError::generic_err("Insufficient funds to repay loan with premium")));
+        return Err(ContractError::Std(StdError::generic_err(
+            "Insufficient funds to repay loan with premium",
+        )));
     }
 
-    // Return the collateral if the loan is repaid
-    let return_collateral = BankMsg::Send {
-        to_address: info.sender.into(),
-        amount: vec![Coin { denom: token.clone(), amount: repay_amount }],
+    // Repay the loan to the lending pool
+    let repay_msg = BankMsg::Send {
+        to_address: state.lending_pool.to_string(),
+        amount: vec![Coin {
+            denom: token.clone(),
+            amount: repay_amount,
+        }],
     };
 
-    // Return a response with the repay and collateral return messages
+    // Return the collateral to the user
+    let return_collateral = BankMsg::Send {
+        to_address: info.sender.into(),
+        amount: vec![Coin {
+            denom: token.clone(),
+            amount: balance.amount, // Returning the actual collateral amount, which is correctly handled now
+        }],
+    };
+
+    // Execute both messages atomically
     Ok(Response::new()
         .add_attribute("method", "execute_operation")
-        .add_message(CosmosMsg::Custom(repay_msg))
+        .add_message(CosmosMsg::Bank(repay_msg))
         .add_message(CosmosMsg::Bank(return_collateral)))
 }
 

@@ -38,8 +38,8 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Subscribe {} => subscribe(deps, env, info),
-        ExecuteMsg::Renew {} => renew(deps, env, info),
+        ExecuteMsg::Subscribe {denom} => subscribe(deps, env, info,denom),
+        ExecuteMsg::Renew {denom} => renew(deps, env, info,denom),
         ExecuteMsg::WithdrawFunds {} => withdraw_funds(deps, info),
     }
 }
@@ -48,12 +48,13 @@ fn subscribe(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
+    denom: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
 
      // Check if the user has sent enough funds
-    let sent_funds = info.funds.iter().find(|c| c.denom == "utoken").unwrap_or(&Coin { denom: "utoken".to_string(), amount: Uint128::zero() }).amount;
-    check_funds(sent_funds, state.subscription_cost)?;
+     let sent_funds = info.funds.iter().find(|c| c.denom == denom).unwrap_or(&Coin { denom: denom.clone(), amount: Uint128::zero() }).amount;
+     check_funds(sent_funds, state.subscription_cost)?;
      if sent_funds < state.subscription_cost {
          return Err(ContractError::InsufficientFunds {});
      }
@@ -86,11 +87,12 @@ fn renew(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
+    denom: String,
 ) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
 
     // Check if the user has sent enough funds
-    let sent_funds = info.funds.iter().find(|c| c.denom == "utoken").unwrap_or(&Coin { denom: "utoken".to_string(), amount: Uint128::zero() }).amount;
+    let sent_funds = info.funds.iter().find(|c| c.denom == denom).unwrap_or(&Coin { denom: denom.clone(), amount: Uint128::zero() }).amount;
     if sent_funds < state.subscription_cost {
         return Err(ContractError::InsufficientFunds {});
     }
@@ -122,7 +124,6 @@ fn withdraw_funds(
         to_address: state.owner.to_string(),
         amount: balance,
     };
-
     Ok(Response::new()
         .add_attribute("method", "withdraw_funds")
         .add_message(CosmosMsg::Bank(withdraw_msg)))

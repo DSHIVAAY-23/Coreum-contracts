@@ -10,8 +10,8 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    Subscribe { },
-    Renew { },
+    Subscribe { denom: String},
+    Renew { denom: String},
     WithdrawFunds { },
 }
 

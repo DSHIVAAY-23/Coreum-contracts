@@ -2,7 +2,7 @@ use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{State, STATE};
 use cosmwasm_std::{
-    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128, Coin, BankMsg, CosmosMsg,
+    entry_point, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128
 };
 use coreum_wasm_sdk::assetft;
 use coreum_wasm_sdk::core::{CoreumMsg, CoreumQueries};
@@ -54,7 +54,13 @@ fn earn_tokens(
     amount: Uint128,
 ) -> Result<Response<CoreumMsg>, ContractError> {
     let state = STATE.load(deps.storage)?;
-    let _customer_addr = deps.api.addr_validate(&customer)?;
+    let customer_addr = deps.api.addr_validate(&customer)?;
+      // Example logic to verify if the customer is allowed to earn tokens
+      let is_whitelisted = check_whitelist(deps.as_ref(), &customer_addr)?;
+      if !is_whitelisted {
+          return Err(ContractError::Unauthorized {});
+      }
+  
 
     let earn_msg = CoreumMsg::AssetFT(assetft::Msg::Mint {
         coin: Coin {
@@ -76,7 +82,10 @@ fn redeem_tokens(
     amount: Uint128,
 ) -> Result<Response<CoreumMsg>, ContractError> {
     let state = STATE.load(deps.storage)?;
-    let _customer_addr = deps.api.addr_validate(&customer)?;
+    let customer_addr = deps.api.addr_validate(&customer)?;
+       // Query the balance of the customer
+       let balance = deps.querier.query_balance(&customer_addr, &state.token_address.to_string())?;
+
 
     let redeem_msg = CoreumMsg::AssetFT(assetft::Msg::Burn {
         coin: Coin {
@@ -146,4 +155,14 @@ fn query_balance(deps: Deps<CoreumQueries>, customer: String) -> StdResult<Uint1
     let customer_addr = deps.api.addr_validate(&customer)?;
     let balance = deps.querier.query_balance(&customer_addr, "token")?;
     Ok(balance.amount)
+
+
+}fn check_whitelist(deps: Deps<CoreumQueries>, customer_addr: &Addr) -> StdResult<bool> {
+
+    let whitelisted_customers = vec![
+        "addr1...".to_string(),
+        "addr2...".to_string(),
+        "addr3...".to_string(),
+    ];
+    Ok(whitelisted_customers.contains(&customer_addr.to_string()))
 }

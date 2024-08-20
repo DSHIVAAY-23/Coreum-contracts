@@ -9,6 +9,7 @@ pub struct State {
     pub owner: Addr,
     /// Address of the lending pool
     pub lending_pool: Addr,
+    
 }
 
 /// Constant to store the state data in the contract's storage
