@@ -1,3 +1,4 @@
+use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{Content, Subscription, COMMUNITY_FUND, CONTENT, SUBSCRIPTIONS};
 use coreum_wasm_sdk::core::{CoreumMsg, CoreumQueries};
@@ -12,11 +13,11 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> StdResult<Response<CoreumMsg>> {
+) ->  Result<Response<CoreumMsg>, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     COMMUNITY_FUND.save(deps.storage, &msg.initial_fund)?;
     Ok(Response::new()
@@ -27,11 +28,11 @@ pub fn instantiate(
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> StdResult<Response<CoreumMsg>> {
+) ->  Result<Response<CoreumMsg>, ContractError> {
     match msg {
         ExecuteMsg::CreateContent { uri, access_level } => {
             create_content(deps, info, uri, access_level)
@@ -50,11 +51,11 @@ pub fn execute(
 }
 
 fn create_content(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     uri: String,
     access_level: Uint128,
-) -> StdResult<Response<CoreumMsg>> {
+) ->  Result<Response<CoreumMsg>, ContractError>{
     let content = Content {
         creator: info.sender.clone(),
         uri,
@@ -68,11 +69,11 @@ fn create_content(
 }
 
 fn tip_content(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     content_id: String,
     amount: Uint128,
-) -> StdResult<Response<CoreumMsg>> {
+) ->  Result<Response<CoreumMsg>, ContractError> {
     let mut content = CONTENT.load(deps.storage, &content_id)?;
     content.tips += amount;
     CONTENT.save(deps.storage, &content_id, &content)?;
@@ -82,13 +83,13 @@ fn tip_content(
 }
 
 fn subscribe(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     creator: Addr,
     amount: Uint128,
     duration: u64,
-) -> StdResult<Response<CoreumMsg>> {
+) ->  Result<Response<CoreumMsg>, ContractError> {
     let expiry = env.block.time.seconds() + duration;
     let subscription = Subscription {
         subscriber: info.sender.clone(),
@@ -108,23 +109,23 @@ fn subscribe(
 }
 
 fn access_content(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     content_id: String,
-) -> StdResult<Response<CoreumMsg>> {
+) ->  Result<Response<CoreumMsg>, ContractError> {
     let content = CONTENT.load(deps.storage, &content_id)?;
     if content.access_level <= Uint128::from(info.funds[0].amount) {
         Ok(Response::new()
             .add_attribute("method", "access_content")
             .add_attribute("content_id", content_id))
     } else {
-        Err(cosmwasm_std::StdError::generic_err(
-            "Insufficient access level",
-        ))
+        Err(ContractError::Unauthorized {  }
+        
+        )
     }
 }
 
-fn distribute_funds(deps: DepsMut<CoreumQueries>, env: Env) -> StdResult<Response<CoreumMsg>> {
+fn distribute_funds(deps: DepsMut, env: Env) -> Result<Response<CoreumMsg>, ContractError> {
     let community_fund = COMMUNITY_FUND.load(deps.storage)?;
     let mut total_subscriptions = Uint128::zero();
 

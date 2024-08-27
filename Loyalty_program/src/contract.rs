@@ -13,7 +13,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
@@ -33,7 +33,7 @@ pub fn instantiate(
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -47,7 +47,7 @@ pub fn execute(
 }
 
 fn earn_tokens(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     customer: String,
@@ -75,7 +75,7 @@ fn earn_tokens(
 }
 
 fn redeem_tokens(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     customer: String,
@@ -100,7 +100,7 @@ fn redeem_tokens(
 }
 
 fn transfer_tokens(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     from: String,
@@ -125,7 +125,7 @@ fn transfer_tokens(
 }
 
 fn withdraw_tokens(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     amount: Uint128,
 ) -> Result<Response<CoreumMsg>, ContractError> {
@@ -157,7 +157,7 @@ fn query_balance(deps: Deps<CoreumQueries>, customer: String) -> StdResult<Uint1
     Ok(balance.amount)
 
 
-}fn check_whitelist(deps: Deps<CoreumQueries>, customer_addr: &Addr) -> StdResult<bool> {
+}fn check_whitelist(deps: Deps, customer_addr: &Addr) -> StdResult<bool> {
 
     let whitelisted_customers = vec![
         "addr1...".to_string(),

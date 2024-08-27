@@ -147,7 +147,7 @@ fn remove_liquidity(
 
     // Check if the pool has enough reserves to remove liquidity
     if pool.token1_reserve < amount1 || pool.token2_reserve < amount2 {
-        return Err(ContractError::InsufficientFunds {});
+        return (ContractError::InsufficientFunds {});
     }
 
     // Update pool reserves and total liquidity
