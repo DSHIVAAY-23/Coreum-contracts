@@ -14,7 +14,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Initialize the contract
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -34,7 +34,7 @@ pub fn instantiate(
 /// Handle execute messages
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -50,7 +50,7 @@ pub fn execute(
 
 /// Create a new asset
 fn create_asset(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     total_supply: Uint128,
     price: Uint128,
@@ -89,7 +89,7 @@ fn create_asset(
 
 /// Transfer ownership of a fractional asset
 fn transfer_ownership(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     token_id: u64,
     to: String,
@@ -127,7 +127,7 @@ fn transfer_ownership(
 
 /// Payout dividends to fractional owners
 fn payout_dividends(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _info: MessageInfo,
     token_id: u64,
 ) -> Result<Response<CoreumMsg>, ContractError> {
@@ -171,7 +171,7 @@ fn payout_dividends(
 
 /// Mint new smart tokens
 fn execute_mint_smart_token(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     to: String,
     amount: Uint128,
@@ -196,7 +196,7 @@ fn execute_mint_smart_token(
 
 /// Transfer smart tokens
 fn execute_transfer_smart_token(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     info: MessageInfo,
     to: String,
     amount: Uint128,
