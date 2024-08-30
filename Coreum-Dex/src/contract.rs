@@ -14,7 +14,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Initializes the contract with the owner, reward token, and reward rate.
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
@@ -44,7 +44,7 @@ pub fn instantiate(
 /// Handles the different execution messages for the DEX.
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -71,7 +71,7 @@ pub fn execute(
 
 /// Adds liquidity to the specified pool.
 fn add_liquidity(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     token1_address: String,
@@ -129,7 +129,7 @@ fn add_liquidity(
 
 /// Removes liquidity from the specified pool.
 fn remove_liquidity(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     token1_address: String,
@@ -147,7 +147,7 @@ fn remove_liquidity(
 
     // Check if the pool has enough reserves to remove liquidity
     if pool.token1_reserve < amount1 || pool.token2_reserve < amount2 {
-        return (ContractError::InsufficientFunds {});
+        return Err((ContractError::InsufficientFunds {}));
     }
 
     // Update pool reserves and total liquidity
@@ -174,7 +174,7 @@ fn remove_liquidity(
 }
 /// Swaps tokens in the specified pool.
 fn swap_tokens(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     token_in: String,
@@ -249,7 +249,7 @@ fn calculate_metastable_swap(pool: &LiquidityPool, amount_in: Uint128) -> Result
 
 /// Distributes rewards to liquidity providers based on their stake.
 fn distribute_rewards(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
 ) -> Result<Response<CoreumMsg>, ContractError> {
