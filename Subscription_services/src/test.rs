@@ -42,7 +42,7 @@ mod tests {
         let _res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
         // Prepare the subscribe message
-        let subscribe_msg = ExecuteMsg::Subscribe {};
+        let subscribe_msg = ExecuteMsg::Subscribe { denom: "earth".to_string() };
         let user_info = mock_info("user", &coins(1000, "utoken"));
 
         // Execute the subscribe function
@@ -69,7 +69,7 @@ mod tests {
         let _res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
         // Subscribe first
-        let subscribe_msg = ExecuteMsg::Subscribe {};
+        let subscribe_msg = ExecuteMsg::Subscribe { denom: "earth".to_string() };
         let user_info = mock_info("user", &coins(1000, "utoken"));
         let _res = execute(deps.as_mut(), env.clone(), user_info.clone(), subscribe_msg).unwrap();
 
@@ -78,7 +78,7 @@ mod tests {
         env.block.time = env.block.time.plus_seconds(15 * 24 * 60 * 60);
 
         // Prepare the renew message
-        let renew_msg = ExecuteMsg::Renew {};
+        let renew_msg = ExecuteMsg::Renew { denom: "earth".to_string()};
         let user_info = mock_info("user", &coins(1000, "utoken"));
 
         // Execute the renew function

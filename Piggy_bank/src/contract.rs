@@ -59,7 +59,7 @@ fn deposit_tokens(
     .funds
     .iter()
     .find(|coin| coin.amount == amount)
-    .ok_or(ContractError::InsufficientFunds)?;
+    .ok_or(ContractError::InsufficientFunds {})?;
     let mut state = STATE.load(deps.storage)?;
     let deposit_id = state.deposit_count;
 

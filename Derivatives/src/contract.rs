@@ -14,7 +14,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Initializes the contract with the owner, token address, and oracle address.
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
@@ -38,7 +38,7 @@ pub fn instantiate(
 /// Handles the different execution messages to create, trade, and settle derivatives.
 #[entry_point]
 pub fn execute(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -58,7 +58,7 @@ pub fn execute(
 
 /// Creates a new derivative and saves it to storage.
 fn create_derivative(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     derivative_type: String,
@@ -102,7 +102,7 @@ fn create_derivative(
 
 /// Trades a specified amount of the derivative to a buyer.
 fn trade_derivative(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     id: u64,
@@ -146,7 +146,7 @@ fn trade_derivative(
 
 /// Settles a derivative by querying the price from the oracle and transferring the payout.
 fn settle_derivative(
-    deps: DepsMut<CoreumQueries>,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     id: u64,
