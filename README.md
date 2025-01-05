@@ -133,10 +133,10 @@ Ensure you have the following installed:
 2. Build the contracts:
 
 ```bash
-
+---
 cargo wasm
 3. Optimize for deployment:
-
+---
 ```bash
 docker run --rm -v "$(pwd)":/code cosmwasm/workspace-optimizer:0.12.6
 Deploy the contracts to Coreum blockchain using the CosmWasm CLI.
