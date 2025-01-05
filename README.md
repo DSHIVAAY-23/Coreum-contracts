@@ -130,12 +130,12 @@ Ensure you have the following installed:
    ```bash
    git clone https://github.com/yourusername/coreum-smart-contracts.git
    cd coreum-smart-contracts
-2. Build the contracts:
+   
+ Build the contracts:
 
 ```bash
 ---
 cargo wasm
-3. Optimize for deployment:
 ---
 ```bash
 docker run --rm -v "$(pwd)":/code cosmwasm/workspace-optimizer:0.12.6
